@@ -9,15 +9,16 @@
 #include <cstdlib>
 #include <csignal>
 #include <map>
-#include <inttypes.h>
-#include <sys/mman.h>
+
+
+//#include <sys/mman.h>
 
 #include "main_poolminer.hpp"
 
 #if defined(__GNUG__) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #include <sys/time.h> //depr?
 #include <sys/resource.h>
-#elif defined(__MINGW32__) || defined(__MINGW64__)
+#elif defined(__MINGW32__) || defined(__MINGW64__) || defined(__WINDOWS__)
 #include <windows.h>
 #endif
 
@@ -227,9 +228,10 @@ public:
 
     std::string donation_addrs[] = {
       "Pr8cnhz5eDsUegBZD4VZmGDARcKaozWbBc", /* initial dev - dga */
-      "Pr8cnhz5eDsUegBZD4VZmGDARcKaozWbBc" /* Linux port maintainer - dga */
+      "Pr8cnhz5eDsUegBZD4VZmGDARcKaozWbBc", /* Linux port maintainer - dga */
+	  "Pc9oQoKptcwnQMoTj3RBvHzDVxx97fu6Kq"  /* Windows port maintainer - acl */
     };
-    int n_donations = 2;
+    int n_donations = 3;
     int which_donation = 0;
     int devtime = 20;
     int usertime = 2000;
@@ -495,7 +497,7 @@ void exit_handler() {
   running = false;
 }
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__WINDOWS__)
 
 //#define WIN32_LEAN_AND_MEAN
 //#include <windows.h>

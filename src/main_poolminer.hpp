@@ -1,6 +1,8 @@
-#if defined(__MINGW64__)
+#define __WINDOWS__
+#if defined(__MINGW64__) | defined(__WINDOWS__)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
 #endif
 
 #include <boost/thread.hpp>

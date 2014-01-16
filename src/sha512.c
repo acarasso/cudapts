@@ -71,7 +71,7 @@
 # endif
 #endif
 
-#include <pthread.h>
+//#include <pthread.h>
 #include <string.h>
 #include "sha512.h"
 
@@ -109,7 +109,7 @@ bswap_64 (unsigned long long __x)
 
 #else
 
-#include <endian.h> //glibc
+//#include <endian.h> //glibc
 
 #define BYTESWAP(x) be32toh(x)
 #define BYTESWAP64(x) be64toh(x)
