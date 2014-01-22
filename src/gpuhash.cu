@@ -3,12 +3,18 @@
  * This code is licensed under the Apache 2.0 license and may be used or re-used
  * in accordance with its terms.
  */
+/**
+ * When building in SM35 Uncomment the following line.  NVCC is apparently retarded when it comes to
+ * int64's and can't figure out how to use new instructions for rotates
+ **/
 
+#define __SM_35__
 //#include <inttypes.h>
 #include <stdio.h>
 #include "gpuhash.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include <sm_35_intrinsics.h>
 //#include <thrust/sort.h>
 __device__ void sha512_block(uint64_t H[8], const uint64_t data[5]);
 __global__ void search_sha512_kernel(const  uint64_t *  __restrict dev_data,  uint64_t * __restrict dev_hashes,  uint32_t * __restrict dev_countbits);
@@ -65,7 +71,7 @@ int GPUHasher::Initialize() {
 #define NUM_COUNTBITS_POWER 31
 #define COUNTBITS_SLOTS_POWER (NUM_COUNTBITS_POWER-1)
 #define NUM_COUNTBITS_WORDS (1<<(NUM_COUNTBITS_POWER-5))
-
+  
   error = cudaMalloc((void **)&dev_hashes, sizeof(uint64_t)*MOMENTUM_N_HASHES);
   if (error != cudaSuccess) {
     fprintf(stderr, "Could not malloc dev_data (%d)\n", error);
@@ -252,13 +258,61 @@ void filter_and_rewrite_sha512_kernel( uint64_t * __restrict__ dev_hashes, const
 
 #define rol(x,n) ((x << n) | (x >> (64-n)))
 #define ror(x,n) ((x >> n) | (x << (64-n)))
+
+#ifdef __SM_35__
+
+
+#define fror(x, n) (fastrotateright(x,n))
+#define frol(x, n) (fastrotateleft(x,n))
+#define tsplit(x) ((uint32_t *)&x)[0]
+#define lsplit(x) ((uint32_t *)&x)[1]
+#define bfror(x,n) (bigfror(x, 32, n-32)) 
+ inline __device__ uint64_t fastrotateright(const uint64_t x, const uint32_t n)
+{
+	uint64_t out =0;
+	tsplit(out) = __funnelshift_rc(tsplit(x),lsplit(x), n);
+	lsplit(out) = __funnelshift_rc(lsplit(x), tsplit(x), n);
+	return out;
+}
+
+inline __device__ uint64_t fastrotateleft(const uint64_t x, const uint32_t n)
+{
+	uint64_t out = 0;
+	lsplit(out) = __funnelshift_lc(tsplit(x), lsplit(x), n);
+	tsplit(out) = __funnelshift_lc(lsplit(x), tsplit(x), n);
+	return out;
+}
+
+
+//inline __device__ uint64_t bigfror(const uint64_t x, const uint32_t n, const uint32_t m)
+//{
+//	uint64_t out =0;
+//	uint32_t t =0;
+//	tsplit(out) = __funnelshift_rc(tsplit(x),lsplit(x), 32);
+//	lsplit(out) = __funnelshift_rc(lsplit(x), tsplit(x), 32);
+//	t = __funnelshift_rc(tsplit(out),lsplit(out), m);
+//	lsplit(out) = __funnelshift_rc(lsplit(out), tsplit(out), m);
+//	tsplit(out) = t;
+//	return out;
+//}
+#define Ch(x,y,z) ((x & y) ^ ( (~x) & z))
+#define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
+#define Sigma0(x) ((fror(x,28))  ^ (frol(x,30)) ^ (frol(x,25)))
+#define Sigma1(x) ((fror(x,14))  ^ (fror(x,18)) ^ (frol(x,23)))
+#define sigma0(x) ((fror(x,1))  ^ (fror(x,8)) ^(x>>7))
+#define sigma1(x) ((fror(x,19)) ^ (frol(x,3)) ^(x>>6))
+
+#else
+#define rol(x,n) ((x << n) | (x >> (64-n)))
+#define ror(x,n) ((x >> n) | (x << (64-n)))
+
 #define Ch(x,y,z) ((x & y) ^ ( (~x) & z))
 #define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
 #define Sigma0(x) ((ror(x,28))  ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x) ((ror(x,14))  ^ (ror(x,18)) ^ (ror(x,41)))
 #define sigma0(x) ((ror(x,1))  ^ (ror(x,8)) ^(x>>7))
 #define sigma1(x) ((ror(x,19)) ^ (ror(x,61)) ^(x>>6))
-
+#endif
 #define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -319,6 +373,9 @@ __device__ void sha512_block(uint64_t H[8], const uint64_t data[5])
   uint64_t h = iv512[7];
 
   uint64_t w[16];
+
+
+  
 
 	/* This can all be factored out onto the CPU setup, but let's
 	 * get it working properly first. */

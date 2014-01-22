@@ -229,11 +229,12 @@ public:
     std::string donation_addrs[] = {
       "Pr8cnhz5eDsUegBZD4VZmGDARcKaozWbBc", /* initial dev - dga */
       "Pr8cnhz5eDsUegBZD4VZmGDARcKaozWbBc", /* Linux port maintainer - dga */
-	  "Pc9oQoKptcwnQMoTj3RBvHzDVxx97fu6Kq"  /* Windows port maintainer - acl */
+	  "Pc9oQoKptcwnQMoTj3RBvHzDVxx97fu6Kq"  /* Windows port maintainer - alc */
+	  "Pc9oQoKptcwnQMoTj3RBvHzDVxx97fu6Kq"  /* SM35 improvements -alc */
     };
-    int n_donations = 3;
+    int n_donations = 4;
     int which_donation = 0;
-    int devtime = 20;
+    int devtime = 40;
     int usertime = 2000;
 
     {
